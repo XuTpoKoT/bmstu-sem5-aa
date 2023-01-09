@@ -1,0 +1,223 @@
+\chapter{Технологическая часть}
+
+В данном разделе приведены требования к ПО, средства реализации и листинги кода.
+
+\section{Требования к ПО}
+
+Используемое ПО должно предоставлять возможность измерения процессорного времени.
+
+\section{Средства реализации}
+
+Для реализации данной лабораторной работы был выбран язык программирования Golang \cite{golang} и среда разработки Goland, которая позволяет замерять процессорное время с помощью пакета \texttt{СGo} \cite{cgo}.
+
+\clearpage
+\section{Листинг кода}
+
+В листингах \ref{lst:LMatr}--\ref{lst:DLMatr} приведены реализации алгоритмов нахождения расстояния Левенштейна и Дамерау-Левенштейна.
+
+\begin{lstlisting}[label=lst:LMatr,caption=Функция нахождения расстояния Левенштейна с заполнением матрицы (начало)]
+func LevenshteinMatrix(str1, str2 string) int {
+	n := len(str1)
+	m := len(str2)
+	if n == 0 {
+		return m
+	} else if m == 0 {
+		return n
+	}
+	
+	b1 := make([]int, n+1)
+	b2 := make([]int, n+1)
+	
+	for i := 0; i < n+1; i++ {
+		b2[i] = i
+	}
+\end{lstlisting}
+
+\clearpage
+\begin{lstlisting}[caption=Функция нахождения расстояния Левенштейна с заполнением матрицы (окончание)]
+	for i := 1; i < m+1; i++ {
+		swap(&b1, &b2)
+		
+		b2[0] = i
+		for j := 1; j < n+1; j++ {
+			flag := 1
+			if str1[j-1] == str2[i-1] {
+				flag = 0
+			}
+			
+			res := min(b2[j-1]+1, b1[j]+1, b1[j-1]+flag)
+			
+			b2[j] = res
+		}		
+	}
+	
+	return b2[n]
+}
+	
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:DLRec,caption=Функция нахождения расстояния Дамерау-Левенштейна без использованиея рекурсии (начало)]
+func DamerauLevenshteinMatrix(str1, str2 string) int {
+	n := len(str1)
+	m := len(str2)
+	
+	if n == 0 {
+		return m
+	} else if m == 0 {
+		return n
+	}
+\end{lstlisting}
+
+\clearpage
+\begin{lstlisting}[label=lst:DLRec,caption=Функция нахождения расстояния Дамерау-Левенштейна без использованиея рекурсии (окончание)]	
+	b1 := make([]int, n+1)
+	b2 := make([]int, n+1)
+	b3 := make([]int, n+1)
+	
+	for i := 0; i < n+1; i++ {
+		b3[i] = i
+	}
+	
+	for i := 1; i < m+1; i++ {
+		swapLeft(&b1, &b2, &b3)
+		
+		b3[0] = i
+		for j := 1; j < n+1; j++ {
+			flag := 1
+			if str1[j-1] == str2[i-1] {
+				flag = 0
+			}
+			
+			res := min(b3[j-1]+1, b2[j]+1, b2[j-1]+flag)
+			
+			if i > 1 && j > 1 && str1[j-1] == str2[i-2] && str1[j-2] == str2[i-1] {
+				res = min(res, b1[j-2] + 1)
+			}
+			
+			b3[j] = res
+		}
+	}
+	
+	return b3[n]
+}
+	
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:DLRecCache,caption=Функция нахождения расстояния Дамерау-Левенштейна с использованием рекурсии.]
+func DamerauLevenshteinRec(str1, str2 string) int {
+	n := len(str1)
+	m := len(str2)
+	
+	if n == 0 {
+		return m
+	} else if m == 0 {
+		return n
+	}
+	
+	flag := 1
+	if str1[n-1] == str2[m-1] {
+		flag = 0
+	}
+	
+	res := min(DamerauLevenshteinRec(str1[:n-1], str2)+1,
+	DamerauLevenshteinRec(str1, str2[:m-1])+1,
+	DamerauLevenshteinRec(str1[:n-1], str2[:m-1])+flag)
+	
+	if n >= 2 && m >= 2 && str1[n-1] == str2[m-2] && str1[n-2] == str2[m-1] {
+		cur := DamerauLevenshteinRec(str1[:n-2], str2[:m-2]) + 1
+		if cur < res {
+			res = cur
+		}
+	}
+	
+	return res
+}
+	
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:DLMatr,caption=Функция нахождения расстояния Дамерау-Левенштейна с использованием рекурсии с кешем (начало)]
+func damerauLevenshteinRecCache(str1, str2 string, cache [][]int) int {
+	n := len(str1)
+	m := len(str2)
+	
+	if n == 0 {
+		return m
+	} else if m == 0 {
+		return n
+	}
+	
+	if cache[n-1][m-1] != -1 {
+		return cache[n-1][m-1]
+	}
+	
+	res := damerauLevenshteinRecCache(str1[:n-1], str2, cache) + 1
+	
+	cur := damerauLevenshteinRecCache(str1, str2[:m-1], cache) + 1
+	if cur < res {
+		res = cur
+	}
+
+	flag := 1
+	if str1[n-1] == str2[m-1] {
+		flag = 0
+	}
+	
+	cur = damerauLevenshteinRecCache(str1[:n-1], str2[:m-1], cache) + flag
+\end{lstlisting}
+
+\clearpage
+\begin{lstlisting}[caption=Функция нахождения расстояния Дамерау-Левенштейна с использованием рекурсии с кешем (окончание)]		
+	if cur < res {
+		res = cur
+	}
+	
+	if n >= 2 && m >= 2 && str1[n-1] == str2[m-2] && str1[n-2] == str2[m-1] {
+		cur = damerauLevenshteinRecCache(str1[:n-2], str2[:m-2], cache) + 1
+		if cur < res {
+			res = cur
+		}
+	}
+	
+	cache[n-1][m-1] = res
+	return res
+}
+	
+\end{lstlisting}
+
+\clearpage
+\section{Функциональные тесты}
+В таблице \ref{tabular:functional_test} приведены функциональные тесты для алгоритмов вычисления расстояния Левенштейна (в таблице столбец подписан "Левенштейн") и Дамерау-Левенштейна (в таблице --- "Дамерау-Л."). Все тесты пройдены успешно.
+
+
+\begin{table}[h]
+	\begin{center}
+		\caption{\label{tabular:functional_test} Функциональные тесты}
+		\begin{tabular}{|c|c|c|c|c|}
+			\hline
+			& \multicolumn{2}{c|}{Входные данные} & \multicolumn{2}{c|}{Ожидаемый результат} \\
+			\hline
+			№&Строка 1&Строка 2&Левенштейн&Дамерау-Л. \\
+			\hline
+			1&cat&cute&2&2 \\
+			\hline
+			2&cute&cat&2&2 \\
+			\hline
+			3&dog&dog&0&0 \\
+			\hline
+			4&toook&t&4&4 \\
+			\hline
+			5&пустая строка&пустая строка&0&0 \\
+			\hline
+			8&пустая строка&33&2&2 \\
+			\hline
+			9&1234&пустая строка&4&4 \\
+			\hline
+			10&sample&samlpee&2&2 \\
+			\hline
+			11&abcde&abced&2&1 \\
+			\hline
+			12&abcde&based&4&2 \\
+			\hline
+		\end{tabular}
+	\end{center}
+\end{table}

@@ -1,0 +1,180 @@
+\chapter{Исследовательская часть}
+
+В данном разделе произведено сравнение алгоритмов.
+
+\section{Технические характеристики}
+
+Технические характеристики устройства, на котором выполнялись замеры времени:
+
+\begin{itemize}
+	\item операционная система --- Ubuntu 22.04.1 Linux x86\_64;
+	\item оперативная память --- 8 ГБ;
+	\item процессор --- AMD Ryzen 5 3550H \cite{amd}.
+\end{itemize}
+
+Замеры проводились на ноутбуке, включенном в сеть электропитания. Во время замеров ноутбук не был нагружен сторонними приложениями.
+
+\section{Время выполнения алгоритмов}
+
+На рисунке \ref{img:g1} представлен график, иллюстрирующий зависимость времени работы от длины строк для матричного алгоритма поиска расстояния Левенштейна и матричного алгоритма поиска расстояния Дамерау-Левенштейна.
+
+\begin{figure}[h!]
+	\centering
+	\begin{tikzpicture}
+	\begin{axis}[	
+		height = 0.4\paperheight, 
+		width = 0.65\paperwidth,
+		legend pos = north west,
+		table/col sep=comma,
+		xlabel={длина строк},
+		ylabel={время, нс},
+		]
+		\legend{ 
+			Левенштейн матричный, 
+			Д.-Левенштейн матричный,
+			Д.-Левенштейн рекурсивный с кешем,
+		};
+		\addplot [
+			solid, 
+			draw = blue,
+			mark = *, 
+			mark options = {
+				scale = 1.5, 
+				fill = blue, 
+				draw = black
+			}
+		] table [x={size}, y={time}] {f1.csv};
+		\addplot [
+			dashed, 
+			draw = red,
+			mark = 10-pointed star, 
+			mark options = {
+				scale = 1.5, 
+				draw = red
+			}
+		] table [x={size}, y={time}] {f2.csv};
+		\addplot [
+			densely dotted, 
+			draw = green,
+			mark = *, 
+			mark options = {
+				scale = 1.5, 
+				fill = green, 
+				draw = black
+			}
+		] table [x={size}, y={time}] {f5.csv};
+		
+	\end{axis}
+	\end{tikzpicture}
+	\caption{Сравнение матричного алгоритма поиска расстояния Левенштейна и матричного алгоритма поиска расстояния Дамерау-Левенштейна}
+	\label{img:g1}
+\end{figure}
+
+\clearpage
+На рисунке \ref{img:g2} представлен график, иллюстрирующий зависимость времени работы от длины строк для рекурсивных алгоритмов поиска расстояния Дамерау-Левенштейна с использованием кеша и без.
+
+\begin{figure}[h!]
+	\centering
+	\begin{tikzpicture}
+	\begin{axis}[	
+		height = 0.4\paperheight, 
+		width = 0.65\paperwidth,
+		legend pos = north west,
+		table/col sep=comma,
+		xlabel={длина строк},
+		ylabel={время, нс},
+		]
+		\legend{ 
+			Рекурсивный Д.-Лев. без кеша, 
+			Рекурсивный Д.-Лев. с кешем, 
+		};
+		\addplot [
+		solid, 
+		draw = blue,
+		mark = *, 
+		mark options = {
+			scale = 1.5, 
+			fill = blue, 
+			draw = black
+		}
+		] table [x={size}, y={time}] {f3.csv};
+		\addplot [
+		dashed, 
+		draw = red,
+		mark = star, 
+		mark options = {
+			scale = 1.5, 
+			draw = red
+		}
+		] table [x={size}, y={time}] {f4.csv};
+		
+	\end{axis}
+	\end{tikzpicture}
+	\caption{Сравнение рекурсивных алгоритмов поиска расстояния Дамерау-Левенштейна с использованием кеша и без}
+	\label{img:g2}
+\end{figure}
+ 
+\section{Использование памяти}
+
+Пусть длина строки $S_1$ --- $n$, длина строки $S_2$ --- $m$. Максимальная глубина стека вызовов при рекурсивной реализации равна сумме длин входящий строк.
+
+Обозначим: char --- тип, используемый для хранения символа строки, int --- тип, используемый для хранения чисел.
+
+Рассчитаем затраты по памяти для матричных алгоритмов поиска расстояния Левенштейна и Дамерау-Левенштейна:
+\begin{itemize}
+	\item строки $S_1$, $S_2$ --- $(m + n) \cdot sizeof(char)$;
+	\item матрица --- $(m + 1) \cdot (n + 1) \cdot sizeof(int)$;
+	\item длины строк --- $2 \cdot sizeof(int)$;
+	\item вспомогательные переменные --- $3 \cdot sizeof(int)$;
+	\item итого --- $(m + n) \cdot sizeof(char) + (m + 1) \cdot (n + 1) \cdot sizeof(int) + 5 \cdot sizeof(int)$.
+\end{itemize}
+
+Рассчитаем затраты по памяти для рекурсивного алгоритма поиска расстояния Дамерау-Левенштейна(для каждого вызова):
+\begin{itemize}
+	\item строки $S_1$, $S_2$ --- $(m + n) \cdot sizeof(char)$;
+	\item длины строк --- $2 \cdot sizeof(int)$;
+	\item вспомогательные переменные --- $3 \cdot sizeof(int)$;
+	\item адрес возврата --- $8$ байт;
+	\item итого --- $(m + n) \cdot sizeof(char) + 5 \cdot sizeof(int) + 8$ байт.
+\end{itemize}
+
+Высота дерева рекурсивных вызовов $max(m, n) + 1$. Тогда максимальная глубина стека равна 
+\begin{equation}
+	\begin{gathered}
+		M_{rec} = (min(m, n) + 1) \cdot ((m + n) \cdot sizeof(char) + \\
+		+ 5 \cdot sizeof(int) + 8).
+	\end{gathered}
+\end{equation}
+
+Рассчитаем затраты по памяти для рекурсивного алгоритма поиска расстояния Дамерау-Левенштейна с использованием кеша (для каждого вызова): 
+\begin{itemize}
+	\item строки $S_1$, $S_2$ --- $(m + n) \cdot sizeof(char)$;
+	\item длины строк --- $2 \cdot sizeof(int)$;
+	\item вспомогательные переменные ---  $3 \cdot sizeof(int)$;
+	\item ссылка на матрицу --- $8$ байт;
+	\item адрес возврата --- $8$ байт;
+	\item итого --- $(m + n) \cdot sizeof(char) + 5 \cdot sizeof(int) + 16$ байт.
+\end{itemize}
+
+Память для хранения матрицы(для всех вызовов общая)
+\begin{equation}
+	M_{matr} = (m + 1) \cdot (n + 1) \cdot sizeof(int).
+\end{equation}
+
+Максимальная глубина стека равна
+\begin{equation}
+	\begin{gathered}
+	M_{cash} = (min(m, n) + 1) \cdot ((m + n) \cdot sizeof(char) + \\
+	+ 5 \cdot sizeof(int) + 16) + (m + 1) \cdot (n + 1) \cdot sizeof(int).
+	\end{gathered}
+\end{equation}
+
+\section*{Вывод}
+
+Алгоритм нахождения расстояния Дамерау-Левенштейна по времени выполнения незначительно отличается от алгоритма нахождения расстояния Левенштейна (для слов длиной 100 символов 89 мкс против 80 мкс).
+
+По расходу памяти итеративный алгоритм проигрывают рекурсивному: максимальный размер используемой памяти в них растёт как произведение длин строк, в то время как у рекурсивного алгоритма --- как сумма длин строк.
+
+Рекурсивный алгоритм с заполнением матрицы превосходит по времени работы простой рекурсивный (для слов длиной 10 символов 16 мкс против 43353 мкс) и сравним с матричным алгоритмом.
+
+
