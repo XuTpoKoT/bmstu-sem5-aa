@@ -1,0 +1,64 @@
+\chapter{Аналитическая часть}
+В этом разделе представлены описания стандартного алгоритма умножения матриц и алгоритма Винограда.
+\section{Наивный алгоритм \newline умножения матриц}
+
+Пусть даны две матрицы:
+\begin{equation}
+	X_{nm} = \begin{pmatrix}
+		x_{11} & x_{12} & \ldots & x_{1k} \\
+		x_{21} & x_{22} & \ldots & x_{2k} \\
+		\vdots & \vdots & \ddots & \vdots \\
+		x_{n1} & x_{n2} & \ldots & x_{nk}
+	\end{pmatrix} \text{, } 
+	Y_{mk} = \begin{pmatrix}
+		y_{11} & y_{12} & \ldots & y_{1k} \\
+		y_{21} & b_{22} & \ldots & y_{2k} \\
+		\vdots & \vdots & \ddots & \vdots \\
+		y_{m1} & y_{m2} & \ldots & y_{mk}
+	\end{pmatrix}.
+\end{equation}
+
+Тогда их произведением будет матрица:
+\begin{equation}
+	Z_{nk} = \begin{pmatrix}
+		z_{11} & z_{12} & \ldots & z_{1k} \\
+		z_{21} & z_{22} & \ldots & z_{2k} \\
+		\vdots & \vdots & \ddots & \vdots \\
+		z_{n1} & z_{n2} & \ldots & z_{nk}
+	\end{pmatrix},
+\end{equation}
+
+где
+\begin{equation}
+	\label{st_mul}
+	z_{ij} = \sum_{l=1}^{m} x_{il}y_{lj} \text{ для } i=\overline{1, n}; j=\overline{1, k}.
+\end{equation}
+
+Наивный алгоритм реализует формулу (\ref{st_mul}).
+
+\section{Алгоритм Копперсмита-Винограда}
+
+Рассмотрим два вектора: $A = (a_1, \ldots, a_n)$ и $B = (b_1, \ldots, b_n)$.
+Их скалярное произведение равно: 
+\begin{equation}
+	\label{vec_mul}
+A \cdot B = \sum_{i=1}^{n} a_{i} \cdot b_{i}
+\end{equation}
+\begin{equation}
+	\label{vec_mul_vin}
+A \cdot B = \sum_{i=1}^{n/2} (a_{2i} + b_{2i+1})(a_{2i+1} + b_{2i}) + t
+\end{equation}
+\begin{equation}
+	\label{t}
+t = \sum_{i=1}^{n/2} a_{i} \cdot a_{i+1} + \sum_{i=1}^{n/2} b_{i} \cdot b_{i+1}
+\end{equation}
+
+В выражениях (\ref{vec_mul_vin}) и (\ref{t}) требуется большее число вычислений, чем в (\ref{vec_mul}), но они позволяют произвести предварительную обработку. 
+Произведения $a_{i} \cdot a_{i+1}$ и $b_{i} \cdot b_{i+1}$ для $i=\overline{1, n/2}$ можно вычислить заранее для каждой соответствующей строки и столбца, что позволит уменьшить число умножений \cite{vinograd}. 
+
+
+
+
+
+
+

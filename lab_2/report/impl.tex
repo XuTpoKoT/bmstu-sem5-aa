@@ -1,0 +1,221 @@
+\chapter{Технологическая часть}
+
+В данном разделе приведены требования к ПО, средства реализации и листинги кода.
+
+\section{Требования к ПО}
+
+Используемое ПО должно предоставлять возможность измерения процессорного времени.
+
+\section{Средства реализации}
+
+Для реализации данной лабораторной работы был выбран язык программирования С++ \cite{c} и среда разработки CLion, которая позволяет замерять процессорное время с помощью пакета \texttt{<ctime>} \cite{ctime}.
+
+\section{Листинг кода}
+
+В листингах \ref{lst:St}--\ref{lst:Cols},  приведены реализации алгоритмов.
+
+\clearpage
+\begin{lstlisting}[label=lst:St,caption=Функция умножения матриц по стандартному алгоритму]
+static void mulStand(const Matrix& m1, const Matrix& m2, Matrix& res) {
+	for (int i = 0; i < m1.rows; i++) {
+		for (int j = 0; j < m1.cols; j++)
+		for (int k = 0; k < m2.rows; k++)
+		res.data[i][j] += m1.data[i][k] * m2.data[k][j];
+	}
+}	
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:VinSlow,caption=Функция умножения матриц по алгоритму Винограда (начало)]
+static void mulVinograd0(const Matrix& A, const Matrix& B, Matrix& res) {
+	std::vector<int> mulH = A.preprocRows0();
+	std::vector<int> mulV = B.preprocCols0();
+	for (int i = 0; i < A.rows; i++) {
+		for (int j = 0; j < B.cols; j++) {
+			res.data[i][j] = -(mulH[i] + mulV[j]);
+			for (int k = 0; k < A.cols/2; k++) {
+				res.data[i][j] = res.data[i][j] +
+				(A.data[i][k*2]+B.data[k*2+1][j])*
+				(A.data[i][k*2+1]+B.data[k*2][j]);
+			}
+		}
+	}
+\end{lstlisting}	
+
+\clearpage
+\begin{lstlisting}[label=lst:VinSlow2,caption=Функция умножения матриц по алгоритму Винограда (окончание)]
+	if (A.cols%2 != 0) {
+		for (int i = 0; i < A.rows; i++) {
+			for (int j = 0; j < B.cols; j++) {
+				res.data[i][j] = res.data[i][j] + A.data[i][A.cols-1]*B.data[A.cols-1][j];
+			}
+		}
+	}
+}	
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:RowsSlow,caption=Функция предобработки строк]
+std::vector<int> preprocRows0() const {
+	std::vector<int> res(rows);
+	for (int i = 0; i < rows; i++) {
+		for (int j = 0; j < cols/2; j++) {
+			res[i] = res[i] + data[i][j*2] * data[i][j*2+1];
+		}
+	}
+	return res;
+}	
+\end{lstlisting}
+
+\clearpage
+\begin{lstlisting}[label=lst:ColsSlow,caption=Функция предобработки столбцов]
+std::vector<int> preprocCols0() const {
+	std::vector<int> res(cols);
+	for (int i = 0; i < cols; i++) {
+		for (int j = 0; j < rows/2; j++) {
+			res[i] = res[i] + data[j*2][i] * data[j*2+1][i];
+		}
+	}
+	return res;
+}
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:Vin,caption=Функция умножения матриц по алгоритму Винограда с оптимизациями (начало)]
+static void mulVinograd3(const Matrix& A, const Matrix& B, Matrix& res) {
+	std::vector<int> mulH = A.preprocRows3();
+	std::vector<int> mulV = B.preprocCols3();
+	for (int i = 0; i < A.rows; i++) {
+		for (int j = 0; j < B.cols; j++) {
+			int tmp = mulH[i] + mulV[j];
+			for (int k = 1; k < A.cols; k += 2) {
+				tmp += (A.data[i][k-1] + B.data[k][j]) *
+				(A.data[i][k] + B.data[k-1][j]);
+			}
+			res.data[i][j] = tmp;
+		}
+	}
+\end{lstlisting}
+\clearpage
+\begin{lstlisting}[label=lst:Vin,caption=Функция умножения матриц по алгоритму Винограда с оптимизациями (окончание)]
+	if ((A.cols&1) != 0) {
+		int n1 = A.cols - 1;
+		for (int i = 0; i < A.rows; i++) {
+			for (int j = 0; j < B.cols; j++) {
+				res.data[i][j] += A.data[i][n1] * B.data[n1][j];
+			}
+		}
+	}
+}
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:Rows,caption=Функция предобработки строк с оптимизациями]
+std::vector<int> preprocRows3() const {
+	std::vector<int> res(rows);
+	for (int i = 0; i < rows; i++) {
+		for (int j = 1; j < cols; j += 2) {
+			res[i] -= data[i][j-1] * data[i][j];
+		}
+	}
+	return res;
+}
+\end{lstlisting}
+
+\clearpage
+\begin{lstlisting}[label=lst:Cols,caption=Функция предобработки столбцов с оптимизациями]
+std::vector<int> preprocCols3() const {
+	std::vector<int> res(cols);
+	for (int i = 0; i < cols; i++) {
+		for (int j = 1; j < rows; j += 2) {
+			res[i] -= data[j-1][i] * data[j][i];
+		}
+	}
+	return res;
+}
+\end{lstlisting}
+
+\section{Функциональные тесты}
+В таблице~\ref{tabular:test_rec} приведены тесты для функций, реализующих стандартный алгоритм умножения матриц, алгоритм Винограда и оптимизированный алгоритм Винограда. Все тесты пройдены успешно.
+
+\begin{table}[h!]
+	\caption{\label{tabular:test_rec} Тестирование функций}
+	\begin{center}
+		\begin{tabular}{c@{\hspace{7mm}}c@{\hspace{7mm}}c@{\hspace{7mm}}}
+			\hline
+			Матрица 1 & Матрица 2 &Ожидаемый результат \\ 
+			\hline
+			\vspace{4mm}
+			$\begin{pmatrix}
+				6
+			\end{pmatrix}$ &
+			$\begin{pmatrix}
+				7
+			\end{pmatrix}$ &
+			$\begin{pmatrix}
+				42
+			\end{pmatrix}$ \\
+			\vspace{2mm}
+			$\begin{pmatrix}
+				1 & 2 & 3
+			\end{pmatrix}$ &
+			$\begin{pmatrix}
+				3 \\
+				2 \\
+				1
+			\end{pmatrix}$ &
+			$\begin{pmatrix}
+				10
+			\end{pmatrix}$ \\
+			\vspace{4mm}
+			$\begin{pmatrix}
+				1\\
+				2\\
+				3
+			\end{pmatrix}$ &
+			$\begin{pmatrix}
+				3 & 2 & 1
+			\end{pmatrix}$ &
+			$\begin{pmatrix}
+				3 & 2 & 1\\
+				6 & 4 & 2 \\
+				9 & 6 & 3
+			\end{pmatrix}$ \\
+			\vspace{4mm}
+			$\begin{pmatrix}
+				4 & 4 & 4\\
+				2 & 2 & 2 \\
+				3 & 3 & 3
+			\end{pmatrix}$ &
+			$\begin{pmatrix}
+				1\\
+				1\\
+				1
+			\end{pmatrix}$ &
+			$\begin{pmatrix}
+				12\\
+				6\\
+				9
+			\end{pmatrix}$ \\
+			\vspace{4mm}
+			$\begin{pmatrix}
+				5 & 0\\
+				0 & 4
+			\end{pmatrix}$ &
+			$\begin{pmatrix}
+				0 & 7\\
+				8 & 0
+			\end{pmatrix}$ &
+			$\begin{pmatrix}
+				0 & 35\\
+				32 & 0
+			\end{pmatrix}$ \\		
+			\vspace{4mm}
+			$\begin{pmatrix}
+				2 & 3
+			\end{pmatrix}$ &
+			$\begin{pmatrix}
+				2 & 3
+			\end{pmatrix}$ &
+			Неверный размер\\
+		\end{tabular}
+	\end{center}
+	
+\end{table}
+

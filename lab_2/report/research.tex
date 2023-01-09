@@ -1,0 +1,99 @@
+\chapter{Исследовательская часть}
+
+В данном разделе произведено сравнение  алгоритмов.
+
+\section{Технические характеристики}
+
+Технические характеристики устройства, на котором выполнялись замеры времени:
+
+\begin{itemize}
+	\item операционная система --- Ubuntu 22.04.1 Linux x86\_64;
+	\item оперативная память --- 8 ГБ;
+	\item процессор --- AMD Ryzen 5 3550H \cite{amd}.
+\end{itemize}
+
+Замеры проводились на ноутбуке, включенном в сеть электропитания. Во время замеров ноутбук не был нагружен сторонними приложениями.
+
+\section{Время выполнения алгоритмов}
+
+Замеры проводились для квадратных матриц одной размерности.
+На рисунке \ref{img:g1} представлен график, иллюстрирующий зависимость времени работы от размерности матриц для стандартного алгоритма и алгоритма Копперсмита-Винограда.
+
+\begin{figure}[h!]
+	\centering
+	\begin{tikzpicture}
+		\begin{axis}[	
+			height = 0.4\paperheight, 
+			width = 0.65\paperwidth,
+			legend pos = north west,
+			table/col sep=comma,
+			xlabel={размерность матриц},
+			ylabel={время, мкс},
+			]
+			\legend{ 
+				Наивный алг., 
+				Вин. без опт., 
+				Вин. с опт. +=,
+				Вин. с опт. <<,
+				Вин. опт.,
+			};
+			\addplot [
+			solid, 
+			draw = blue,
+			mark = *, 
+			mark options = {
+				scale = 1.5, 
+				fill = blue, 
+				draw = black
+			}
+			] table [x={size}, y={time}] {st.csv};
+			\addplot [
+			dotted, 
+			draw = red,
+			mark = star, 
+			mark options = {
+				scale = 1.5, 
+				draw = red
+			}
+			] table [x={size}, y={time}] {v0.csv};
+			\addplot [
+			dashed, 
+			draw = green,
+			mark = x, 
+			mark options = {
+				scale = 1.5, 
+				draw = green
+			}
+			] table [x={size}, y={time}] {v1.csv};
+			\addplot [
+			densely dotted, 
+			draw = yellow,
+			mark = oplus, 
+			mark options = {
+				scale = 1.5, 
+				draw = yellow
+			}
+			] table [x={size}, y={time}] {v2.csv};
+			\addplot [
+			loosely dashdotted, 
+			draw = violet,
+			mark = star, 
+			mark options = {
+				scale = 1.5, 
+				draw = violet
+			}
+			] table [x={size}, y={time}] {v3.csv};
+		\end{axis}
+	\end{tikzpicture}
+	\caption{Сравнение алгоритмов умножения матриц}
+	\label{img:g1}
+\end{figure}
+
+\clearpage
+\section*{Вывод}
+
+Алгоритм Копперсмита-Винограда превосходит по времени работы стандартный алгоритм на 85\% (для матриц размерности 700 $\cdot$ 700). 
+
+Результаты замеров доказывают важность оптимизаций --- версия алгоритма Копперсмита-Винограда с предварительными вычислениями быстрее обычной на 46\% (для матриц размерности 300 $\cdot$ 300).
+
+

@@ -1,0 +1,255 @@
+\chapter{Технологическая часть}
+
+В данном разделе представлены требования к программному обеспечению, средства реализации, листинги кода и проведена оценка трудоёмкости.
+
+\section{Требования к программному \newline обеспечению}
+
+Используемое программное обеспечение должно предоставлять возможность измерения процессорного времени.
+
+\section{Средства реализации}
+
+Для реализации данной лабораторной работы был выбран язык программирования С++ \cite{c} и среда разработки CLion, которая позволяет замерять процессорное время с помощью пакета \texttt{<ctime>} \cite{ctime}.
+
+\section{Реализация алгоритмов}
+
+В листингах \ref{lst:shakerSort}--\ref{lst:treeSort} приведены реализации алгоритмов, в листингах \ref{lst:insert}--\ref{lst:trav} --- функции вставки в дерево и его обхода.
+
+\clearpage
+\begin{lstlisting}[label=lst:shakerSort,caption=Функция сортировки перемешиванием]
+void shakerSort(std::vector<int> &a) {
+	int left = 0;
+	int right = a.size() - 1;
+	int newBorder = left;
+	
+	while (right > left) {
+		for (int i = left; i < right; i++) {
+			if (a[i] > a[i+1]) {
+				int tmp = a[i];
+				a[i] = a[i+1];
+				a[i+1] = tmp;
+				newBorder = i;
+			}
+		}
+		right = newBorder;
+		
+		for (int i = right; i > left; i--) {
+			if (a[i-1] > a[i]) {
+				int tmp = a[i];
+				a[i] = a[i-1];
+				a[i-1] = tmp;
+				newBorder = i;
+			}
+		}
+		left = newBorder;
+	}
+}	
+\end{lstlisting}
+
+\clearpage
+\begin{lstlisting}[label=lst:gnomeSort,caption=Функция гномьей сортировки]
+void gnomeSort(std::vector<int> &a) {
+	int n =  a.size();
+	
+	for (int i = 0; i < n;) {
+		if (i == 0 || a[i-1] <= a[i]) {
+			i++;
+		} else {
+			int tmp = a[i];
+			a[i] = a[i-1];
+			a[i-1] = tmp;
+			i--;
+		}
+	}
+}	
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:treeSort,caption=Функция сортировки двоичным деревом]
+void treeSort(std::vector<int> &arr) {
+	auto tree = std::make_unique<BSTree>();
+	
+	for (int &el : arr) {
+		tree->insert(el);
+	}
+	
+	tree->traverse(arr);
+}	
+\end{lstlisting}
+\clearpage
+\begin{lstlisting}[label=lst:insert,caption=Функция вставки в дерево]
+BinTreeNode* insert(BinTreeNode *node, int data) {
+	if (node == nullptr) {
+		node = new BinTreeNode{data, nullptr, nullptr};
+	} else if (data < node->data) {
+		node->left = insert(node->left, data);
+	} else {
+		node->right = insert(node->right, data);
+	}
+	return node;
+}	
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:trav,caption=Функция обхода дерева]
+void traverse(BinTreeNode *node, std::vector<int> &arr, int &index) {
+	if (node->left != nullptr) {
+		traverse(node->left,arr, index);
+	}
+	
+	arr[index] = node->data;
+	index++;
+	
+	if (node->right != nullptr) {
+		traverse(node->right,arr, index);
+	}
+}	
+\end{lstlisting}
+\clearpage
+
+\section{Оценка трудоемкости алгоритмов}
+
+\subsection{Модель вычислений}
+
+Для оценки трудоёмкости алгоритмов введём модель вычислений.
+\begin{enumerate}
+	\item Операции из списка (\ref{model:opers}) имеют трудоемкость 1.
+	\begin{equation}
+		\label{model:opers}
+		+, -, ++, {-}-, *, /, \%, ==, !=, <, >, <=, >=, []
+	\end{equation}
+	\item Трудоемкость оператора выбора if условие then A else B рассчитывается, как (\ref{model:if}).
+	\begin{equation}
+		\label{model:if}
+		f_{if} = f_{\text{условия}} +
+		\begin{cases}
+			f_A, & \text{если условие выполняется;}\\
+			f_B, & \text{иначе.}
+		\end{cases}
+	\end{equation}
+	\item Трудоемкость цикла с $N$ итерациями рассчитывается, как (\ref{model:cycle}).
+	\begin{equation}
+		\label{model:cycle}
+		\begin{gathered}
+			f_{\text{цикла}} = f_{\text{инициализации}} + f_{\text{сравнения}} + \\
+			+ N(f_{\text{тела}} + f_{\text{инкремента}} + f_{\text{сравнения}})
+		\end{gathered}
+	\end{equation}
+	\item Трудоемкость вызова функции равна 0.
+\end{enumerate}
+
+\subsection{Cортировка перемешиванием}
+
+Рассчитаем трудоёмкость для худшего случая --- массив отсортирован в обратном порядке.
+\begin{enumerate}
+	\item Трудоёмкость условного оператора:
+	\begin{equation}
+		\begin{gathered}
+			f_{if} = \underbrace{4}_{cmp} + \underbrace{2+4+3}_{swap} + \underbrace{1}_{newborder} + \underbrace{2}_{inc} + \underbrace{2}_{cmp} = 18.
+		\end{gathered}
+	\end{equation}
+	\item Трудоёмкость внешнего цикла:
+	\begin{equation}
+		\begin{gathered}z
+			f_{out} = \underbrace{4}_{init} + \frac{N}{2} \cdot (\underbrace{1}_{cmp} + 	\underbrace{2}_{inc} + (N-1) \cdot (\underbrace{2}_{init} + \underbrace{2}_{cmp})).
+		\end{gathered}
+	\end{equation}
+	\item Общая трудоёмкость в худшем случае:
+	\begin{equation}
+		\begin{gathered}
+			f_{worst} = 4 - 8 \cdot N + 11 \cdot N^2.
+		\end{gathered}
+	\end{equation}
+\end{enumerate}	
+
+Трудоёмкость алгоритма сортировки пермешиванием в худшем случае оценена как $O(N^2)$.
+
+Рассчитаем трудоёмкость для лучшего случая --- массив уже отсортирован.
+\begin{enumerate}
+	\item Трудоёмкость условного оператора:
+	\begin{equation}
+		\begin{gathered}
+			f_{if} = \underbrace{4}_{cmp}.
+		\end{gathered}
+	\end{equation}
+	\item Трудоёмкость первого внутреннего цикла:
+	\begin{equation}
+		\begin{gathered}
+			f_{in1} = \underbrace{2}_{init} + N \cdot (\underbrace{1}_{cmp} + 	\underbrace{1}_{inc} + f_{if}).
+		\end{gathered}
+	\end{equation}
+	\item Трудоёмкость второго внутреннего цикла:
+	\begin{equation}
+		\begin{gathered}
+			f_{in2} = \underbrace{2}_{init}.
+		\end{gathered}
+	\end{equation}
+	\item Трудоёмкость внешнего цикла:
+	\begin{equation}
+		\begin{gathered}
+			f_{out} = \underbrace{4}_{init} + \underbrace{1}_{cmp} + \underbrace{2}_{inc} + f_{in1} + f_{in2}.
+		\end{gathered}
+	\end{equation}
+	\item Общая трудоёмкость в лучшем случае:
+	\begin{equation}
+		\begin{gathered}
+			f_{best} =6 \cdot N + 11 \approx 6 \cdot N.
+		\end{gathered}
+	\end{equation}
+\end{enumerate}	
+
+\clearpage
+\subsection{Гномья сортировка}
+Рассчитаем трудоёмкость для худшего случая --- массив отсортирован в обратном порядке.
+\begin{enumerate}
+	\item Трудоёмкость проверки условия:
+	\begin{equation}
+		\begin{gathered}
+			f_{cmp} = 6.
+		\end{gathered}
+	\end{equation}
+	\item Трудоёмкость условного оператора при истинном условии:
+	\begin{equation}
+		\begin{gathered}
+			f_{if} = f_{cmp} + 1 = 7.
+		\end{gathered}
+	\end{equation}
+	\item Трудоёмкость условного оператора при ложном условии:
+	\begin{equation}
+		\begin{gathered}
+			f_{else} = f_{cmp} + 10 = 16.
+		\end{gathered}
+	\end{equation}
+	
+	\item Трудоёмкость цикла:
+	\begin{equation}
+		\begin{gathered}
+			f_{out} = \underbrace{2}_{init} + \frac{N - 1}{2} \cdot N \cdot (\underbrace{1}_{cmp} + f_{if} + f_{else}) + N \cdot f_{if}.
+		\end{gathered}
+	\end{equation}
+	\item Общая трудоёмкость в худшем случае:
+	\begin{equation}
+		\begin{gathered}
+			f_{worst} = 12 \cdot N^2 - 5 \cdot N + 2 \approx 12 \cdot N^2.
+		\end{gathered}
+	\end{equation}
+\end{enumerate}	
+
+\clearpage
+Рассчитаем трудоёмкость для лучшего случая --- массив уже отсортирован.
+\begin{enumerate}
+	\item Трудоёмкость условного оператора:
+	\begin{equation}
+		\begin{gathered}
+			f_{if} = 7.
+		\end{gathered}
+	\end{equation}
+	\item Общая трудоёмкость в лучшем случае:
+	\begin{equation}
+		\begin{gathered}
+			f_{best} = N \cdot f_{if} = 7 \cdot N.
+		\end{gathered}
+	\end{equation}
+\end{enumerate}
+
+\subsection{Cортировка двоичным деревом}
+Трудоёмкость этого алгоритма в лучшем случае, когда вставка каждого элемента производится в сбалансированное дерево, пропорциональна $N \cdot \log{N}$, в худшем случае --- для невозрастающей или неубывающей последовательности --- $N^2$ \cite{knuth}.
+
+
