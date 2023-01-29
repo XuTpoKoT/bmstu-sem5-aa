@@ -1,9 +1,14 @@
+#include <vector>
+
 #include "Conveyor.h"
 
 int main() {
-    auto r = Request::createRequest();
     auto conveyor = make_shared<Conveyor>();
-    conveyor->runParallel(3);
-
+    vector<size_t> sizes{500, 1000, 2000, 4000};
+    for (auto size : sizes) {
+        conveyor->runParallel(size);
+        conveyor->runСonsistently(size);
+    }
+    
     return 0;
 }

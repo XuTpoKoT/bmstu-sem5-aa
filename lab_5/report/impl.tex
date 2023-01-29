@@ -1,0 +1,155 @@
+\chapter{Технологическая часть}
+
+В данном разделе представлены требования к программному обеспечению, средства реализации и листинги кода.
+
+\section{Требования к программному \newline обеспечению}
+
+Используемое программное обеспечение должно предоставлять возможность измерения процессорного времени и работы с потоками.
+
+\section{Средства реализации}
+
+Для реализации данной лабораторной работы был выбран язык программирования С++ \cite{c} и среда разработки CLion, которая позволяет замерять процессорное время с помощью пакета \texttt{<ctime>} \cite{ctime} и работать с потоками, используя класс std::thread \cite{thread}.
+
+\section{Реализация алгоритма}
+
+В листингах \ref{lst:Request} и \ref{lst:Conveyor1}--\ref{lst:Conveyor3} приведены реализации классов заявки и конвейера, в листингах \ref{lst:stage1}--\ref{lst:encode} приведены раелизации этапов алгоритма Хаффмана.
+
+\clearpage
+\begin{lstlisting}[label=lst:Request,caption=Класс Request]
+class Request {
+public:
+	Request(string srcData) : srcData{srcData} {}	
+	string srcData;
+	string result;
+	unordered_map<char, int> freq;
+	priority_queue<shared_ptr<Node>, vector<shared_ptr<Node>>, NodeComparator> pq;
+	unordered_map<char, string> huffmanCode;
+	
+	static shared_ptr<Request> createRequest() {
+		return make_shared<Request>(StringGenerator::genString(10));
+	}
+};
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:Conveyor1,caption=Класс Conveyor (часть 1)]
+class Conveyor {
+public:
+	Conveyor(){}
+	
+	void runParallel(size_t cntRequests) {
+		for (size_t i = 0; i < cntRequests; i++) {
+			auto r = Request::createRequest();
+			q1.push(r);
+		}
+		
+		this->threads[0] = std::thread(&Conveyor::stage1, this);
+		this->threads[1] = std::thread(&Conveyor::stage2, this);
+		this->threads[2] = std::thread(&Conveyor::stage3, this);
+		
+		for (int i = 0; i < THRD_CNT; i++) {
+			this->threads[i].join();
+		}
+		
+		for (size_t i = 0; i < cntRequests; i++) {
+			auto r = processedRequests[i];
+			Huffman::printInfo(r);
+		}
+	}
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:Conveyor2,caption=Класс Conveyor (часть 2)]
+private:
+	void stage1() {
+		while (!this->q1.empty()) {
+			auto r = q1.front();
+			Huffman::stage1(r);
+			
+			q2.push(r);
+			q1.pop();
+		}	
+	}
+	
+	void stage2() {
+		do {
+			if (!this->q2.empty()) {
+				auto r = q2.front();
+				Huffman::stage2(r);
+				
+				q3.push(r);
+				q2.pop();
+			}
+		} while(!q1.empty() || !q2.empty());
+	}
+	
+	void stage3() {
+		do {
+			if (!this->q3.empty()) {
+				auto r = q3.front();
+				Huffman::stage3(r);
+				
+				processedRequests.push_back(r);
+				q3.pop();
+			}
+		} while(!q1.empty() || !q2.empty() || !q3.empty());
+	}
+	
+private:
+	std::thread threads[THRD_CNT];
+	std::vector<std::shared_ptr<Request>> processedRequests;
+
+\end{lstlisting}
+\clearpage
+\begin{lstlisting}[label=lst:Conveyor3,caption=Класс Conveyor (часть 3)]
+	std::queue<std::shared_ptr<Request>> q1;
+	std::queue<std::shared_ptr<Request>> q2;
+	std::queue<std::shared_ptr<Request>> q3;
+};
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:stage1,caption=1-й этап алгоритма Хаффмана]
+void stage1(shared_ptr<Request> r) {
+	for (char ch: r->srcData) {
+		r->freq[ch]++;
+	}
+	
+	for (auto pair: r->freq) {
+		r->pq.push(make_shared<Node>(pair.first, pair.second, nullptr, nullptr));
+	}
+}
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:stage2,caption=2-й этап алгоритма Хаффмана]
+void stage2(shared_ptr<Request> r) {
+	while (r->pq.size() > 1) {
+		shared_ptr<Node> left = r->pq.top(); r->pq.pop();
+		shared_ptr<Node> right = r->pq.top(); r->pq.pop();
+		
+		int sum = left->freq + right->freq;
+		r->pq.push(make_shared<Node>('\0', sum, left, right));
+	}
+}
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:stage3,caption=3-й этап алгоритма Хаффмана]
+void stage3(shared_ptr<Request> r) {
+	encode(r->pq.top(), "", r->huffmanCode);
+	
+	for (char ch: r->srcData) {
+		r->result += r->huffmanCode[ch];
+	}
+}
+\end{lstlisting}
+\clearpage
+\begin{lstlisting}[label=lst:encode,caption=Формирование кодов Хаффмана]
+void encode(shared_ptr<Node> root, string str, unordered_map<char, string> &huffmanCode) {
+	if (root == nullptr)
+		return;
+	
+	if (!root->left && !root->right) {
+		huffmanCode[root->ch] = str;
+	}
+	
+	encode(root->left, str + "0", huffmanCode);
+	encode(root->right, str + "1", huffmanCode);
+}
+\end{lstlisting}

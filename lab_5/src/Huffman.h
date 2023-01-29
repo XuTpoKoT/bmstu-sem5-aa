@@ -4,17 +4,21 @@
 
 #include "Request.h"
 
+long long getThreadCpuTimeNs() {
+        struct timespec t;
+        if (clock_gettime(CLOCK_REALTIME, &t)) {
+            perror("clock_gettime");
+            return 0;
+        }
+        return t.tv_sec * 1000000000LL + t.tv_nsec;
+}
+
 class Huffman {
 public:
     Huffman(){}
-    static void run(shared_ptr<Request> r) {
-        stage1(r);
-        stage2(r);
-        stage3(r);
-        stage4(r);
-    }
 
     static void stage1(shared_ptr<Request> r) {
+        r->timeStart = getThreadCpuTimeNs();
         for (char ch: r->srcData) {
             r->freq[ch]++;
         }
@@ -40,19 +44,20 @@ public:
         for (char ch: r->srcData) {
             r->result += r->huffmanCode[ch];
         }
+        r->timeEnd =  getThreadCpuTimeNs();
     }
 
-    static void stage4(shared_ptr<Request> r) {
-        size_t index = 0;
-        cout << "\nDecoded string is:\n";
-        while (index < r->result.size()) {
-            decode(r->pq.top(), index, r->result);
-        }
-        cout << '\n';
-    }
+    // static void stage4(shared_ptr<Request> r) {
+    //     size_t index = 0;
+    //     cout << "\nDecoded string is:\n";
+    //     while (index < r->result.size()) {
+    //         decode(r->pq.top(), index, r->result);
+    //     }
+    //     cout << '\n';
+    // }
 
     static void printInfo(shared_ptr<Request> r) {
-        cout << "Huffman Codes are :\n";
+        cout << "\nHuffman Codes are :\n";
         for (auto pair: r->huffmanCode) {
             cout << pair.first << " " << pair.second << '\n';
         }
@@ -75,22 +80,22 @@ private:
         encode(root->right, str + "1", huffmanCode);
     }
 
-    static void decode(shared_ptr<Node> root, size_t &index, string str) {
-        if (root == nullptr) {
-            return;
-        }
+    // static void decode(shared_ptr<Node> root, size_t &index, string str) {
+    //     if (root == nullptr) {
+    //         return;
+    //     }
 
-        if (!root->left && !root->right)
-        {
-            cout << root->ch;
-            return;
-        }
+    //     if (!root->left && !root->right)
+    //     {
+    //         cout << root->ch;
+    //         return;
+    //     }
 
-        if (str[index++] =='0')
-            decode(root->left, index, str);
-        else
-            decode(root->right, index, str);
-    }
+    //     if (str[index++] =='0')
+    //         decode(root->left, index, str);
+    //     else
+    //         decode(root->right, index, str);
+    // }
 
 };
 
