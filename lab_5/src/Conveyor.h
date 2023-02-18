@@ -1,6 +1,7 @@
 #pragma once
 
 #include <thread>
+#include <mutex>
 
 #include "Huffman.h"
 #include "CSVWriter.h"
@@ -33,10 +34,10 @@ public:
 		}
 		long long timeEnd = getThreadCpuTimeNs();
 
-		// for (size_t i = 0; i < cntRequests; i++) {
-		// 	auto r = processedRequests[i];
-		// 	Huffman::printInfo(r);
-		// }
+		for (size_t i = 0; i < cntRequests; i++) {
+			auto r = processedRequests[i];
+			Huffman::printInfo(r);
+		}
 		
 		wParallel << cntRequests << (timeEnd - timeStart) / 1000 << endrow;
         wParallel.flush();
@@ -76,7 +77,9 @@ private:
 			auto r = q1.front();
 			Huffman::stage1(r);
 
+			m1.lock();
 			q2.push(r);
+			m1.unlock();
 			q1.pop();
 		}	
 	}
@@ -87,8 +90,12 @@ private:
 				auto r = q2.front();
 				Huffman::stage2(r);
 
+				m2.lock();
 				q3.push(r);
+				m2.unlock();
+				m1.lock();
 				q2.pop();
+				m1.unlock();
 			}
 		} while(!q1.empty() || !q2.empty());
 	}
@@ -100,7 +107,9 @@ private:
 				Huffman::stage3(r);
 
 				processedRequests.push_back(r);
+				m2.lock();
 				q3.pop();
+				m2.unlock();
 			}
 		} while(!q1.empty() || !q2.empty() || !q3.empty());
 	}
@@ -114,4 +123,5 @@ private:
     std::queue<std::shared_ptr<Request>> q1;
     std::queue<std::shared_ptr<Request>> q2;
     std::queue<std::shared_ptr<Request>> q3;
+	std::mutex m1, m2;
 };

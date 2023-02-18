@@ -6,12 +6,7 @@
 *.blg
 *.bbl
 *.toc
-*.synctex*
-
-*.o
-cmake-build-debug/
-main
-log.txt
-
 *.drawio
+*.graphml
+
 *.idea

@@ -36,7 +36,6 @@
         "tuple": "cpp",
         "type_traits": "cpp",
         "utility": "cpp",
-        "fstream": "cpp",
         "initializer_list": "cpp",
         "iosfwd": "cpp",
         "iostream": "cpp",
@@ -45,12 +44,8 @@
         "new": "cpp",
         "numbers": "cpp",
         "ostream": "cpp",
-        "semaphore": "cpp",
-        "sstream": "cpp",
         "stdexcept": "cpp",
-        "stop_token": "cpp",
         "streambuf": "cpp",
-        "thread": "cpp",
         "typeinfo": "cpp"
     }
 }

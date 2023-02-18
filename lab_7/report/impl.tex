@@ -1,0 +1,34 @@
+\chapter{Технологическая часть}
+
+\section{Средства реализации}
+
+В качестве языка программирования для реализации данной лабораторной работы был выбран ЯП Python \cite{py}. В качестве среды разработки выбор сделан в сторону Visual Studio Code.
+
+\section{Реализация алгоритма}
+
+В листинге \ref{lst:l1} приведена реализация функции чтения запроса.
+
+\begin{lstlisting}[label=lst:l1,caption=Функция чтения запроса]
+def readRequest():
+	reqIsValid = False
+	sizeBordersArr = []
+	reqWords = input("Input request: ").lower().split()
+	for word in reqWords:
+		if damLev(word, "crossovki") <= 2:
+			break
+	else:
+		return reqIsValid, sizeBordersArr
+	
+	for word in reqWords:
+		for attr in attributes:
+			if damLev(word, attr) <= 3:
+				sizeBordersArr.append(categories[attr])
+	
+	if len(sizeBordersArr) > 0:
+		reqIsValid = True
+	
+	return reqIsValid, sizeBordersArr
+\end{lstlisting}
+
+
+

@@ -153,3 +153,76 @@ void encode(shared_ptr<Node> root, string str, unordered_map<char, string> &huff
 	encode(root->right, str + "1", huffmanCode);
 }
 \end{lstlisting}
+
+\section{Тестирование}
+
+Проведём тестирование на документах с разным содержимым для 
+определения работоспособности приложения.
+
+Для удобства входные строки будут представлены в виде пары <буква, количество вхождений>.
+
+\begin{table}[h!]
+	\begin{center}\begin{tabular}{|c|c|c|}
+			\hline
+			Входные строки & Ожидаемый результат & Результат \\ 
+			\hline
+			$\makecell{
+				<c, 3> \\
+				<b, 4> \\
+				<d, 8> \\
+				<t, 3>
+			}$
+			& 
+			$\makecell{
+				d: 0\\
+				b: 10\\
+				c: 110\\
+				t: 111
+			}$
+			& $\makecell{
+				d: 0\\
+				b: 10\\
+				c: 110\\
+				t: 111
+			}$\\
+			\hline
+			$\makecell{
+				<c, 3> \\
+				<b, 11> \\
+				<d, 10> \\
+				<t, 2>
+			}$
+			& $\makecell{
+				b: 0 \\
+				t: 100 \\
+				c: 101 \\
+				d: 11 
+			}$ & $\makecell{
+				b: 0 \\
+				t: 100 \\
+				c: 101 \\
+				d: 11 
+			}$\\
+			\hline
+			$\makecell{
+				<y, 9> \\
+				<u, 2> \\
+				<i, 1> \\
+				<o, 1>
+			}$
+			& $\makecell{
+				u: 00 \\
+				i: 010 \\
+				o: 011 \\
+				y: 1
+			}$ & $\makecell{
+				u: 00 \\
+				i: 010 \\
+				o: 011 \\
+				y: 1
+			}$\\
+			\hline
+	\end{tabular}\end{center}
+\end{table}
+
+Все тесты пройдены успешно.

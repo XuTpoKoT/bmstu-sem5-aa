@@ -1,0 +1,216 @@
+\chapter{Технологическая часть}
+
+\section{Средства реализации}
+
+Для реализации данной лабораторной работы был выбран язык программирования С++ \cite{c} и среда разработки CLion, которая позволяет замерять процессорное время с помощью пакета \texttt{<ctime>} \cite{ctime}.
+
+\section{Реализация алгоритмов}
+
+В листингах \ref{lst:ex}--\ref{lst:ant} приведены реализации класса Colony, алгоритма полного перебора и муравьиного алгоритма.
+В листингах \ref{lst:makePath}--\ref{lst:fer} приведены реализации вспомогательных функций.
+
+\begin{lstlisting}[label=lst:ex,caption=Алгоритм полного перебора]
+std::pair<std::vector<int>, double> exhaustiveSearch(const Graph &graph) {
+	std::vector<int> bestPath(graph.size());
+	std::vector<int> curPath(graph.size());
+	for (int i = 0; i < graph.size(); i++) {
+		curPath[i] = i;
+	}
+	double bestPathLen = pathLen(graph, curPath);
+	
+	while(std::next_permutation(curPath.begin() + 1, curPath.end())) {
+		auto len = pathLen(graph, curPath);
+		if (len < bestPathLen) {
+			bestPathLen = len;
+			bestPath = curPath;
+		}
+	}
+	
+	return std::make_pair(bestPath, bestPathLen);
+}
+\end{lstlisting}
+
+\clearpage
+\begin{lstlisting}[label=lst:col,caption=Класс Colony]
+struct SimulationResult {
+	std::vector<size_t> path;
+	double pathLen;
+};
+
+class Colony {
+	private:
+	static constexpr const double START_PHEROMONE = 0.3;
+	std::default_random_engine generator;
+	std::uniform_real_distribution<double> distribution = std::uniform_real_distribution<double>(0, 1);
+	
+	Graph graph;
+	Graph pheromoneGraph;
+	Parameters params;
+	
+	public:
+	explicit Colony(Graph &graph);
+	SimulationResult simulation(Parameters parameters);
+	
+	private:
+	std::vector<size_t> makePath(size_t start_vert);
+	double getPathLen(std::vector<size_t> path);
+	void updatePheromone(const std::vector<std::vector<size_t>> &paths);
+	void vaporizePheromone();
+	void addPheromone(const std::vector<std::vector<size_t>> &paths);
+	void addPheromone(const std::vector<size_t> &path);
+	double randomProbability();
+	std::vector<double> vertexesProbabilities(size_t curVert, const std::vector<size_t> &availableVertexes);
+	size_t choseVert(size_t vertex, const std::vector<size_t> &visitedVertexes);
+};
+\end{lstlisting}
+
+\clearpage
+\begin{lstlisting}[label=lst:ant,caption=Муравьиный алгоритм]
+SimulationResult Colony::simulation(Parameters parameters) {
+	params = parameters;
+	pheromoneGraph = Graph(graph.size(), START_PHEROMONE);
+	std::vector<size_t> bestPath;
+	double bestPathLen = -1;
+	
+	for (size_t i = 0; i < params.simulationDays; ++i) {
+		std::vector<std::vector<size_t>> dayPaths(graph.size());
+		for (size_t v = 0; v < graph.size(); ++v) {
+			auto path = makePath(v);
+			auto pathLen = getPathLen(path);
+			dayPaths.at(v) = path;
+			
+			if (pathLen < bestPathLen || std::abs(bestPathLen + 1) < std::numeric_limits<double>::epsilon()) {
+				bestPath = path;
+				bestPathLen = pathLen;
+			}
+		}
+		updatePheromone(dayPaths);
+		addPheromone(bestPath); // elite ants
+	}
+	
+	return { bestPath, bestPathLen };
+}
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:makePath,caption=Построение маршрута]
+std::vector<size_t> Colony::makePath(size_t startVert) {
+	std::vector<size_t> visitedVertexes = {startVert};
+	
+	auto curVert = startVert;
+	while (visitedVertexes.size() != graph.size()) {
+		curVert = choseVert(curVert, visitedVertexes);
+		visitedVertexes.push_back(curVert);
+	}
+	
+	return visitedVertexes;
+}
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:nextV,caption=выбор следующей вершины]
+size_t Colony::choseVert(size_t vertex, const std::vector<size_t> &visitedVertexes) {
+	auto probability = randomProbability();
+	auto availableVertexes = graph.getAvailableVertices(vertex, visitedVertexes);
+	
+	auto probabilities = vertexesProbabilities(vertex, availableVertexes);
+	auto denominator = std::accumulate(probabilities.begin(), probabilities.end(), 0.0);
+	
+	double curProb = 0.0;
+	for (auto &v: availableVertexes) {
+		curProb += probabilities.at(v) / denominator;
+		if (curProb >= probability) {
+			return v;
+		}
+	}
+	
+	return availableVertexes[availableVertexes.size() - 1];
+}
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:prob,caption=получение вероятностей перехода в доступные вершины]
+std::vector<double> Colony::vertexesProbabilities(size_t curVert, const std::vector<size_t> &availableVertexes) {
+	std::vector<double> probabilities(graph.size(), 0);
+	
+	for (auto &v: availableVertexes) {
+		probabilities.at(v) = static_cast<double &&>(
+		std::pow(pheromoneGraph.get(curVert, v), params.a)
+		* std::pow(1. / graph.get(curVert, v), params.b)
+		);
+	}
+	
+	return probabilities;
+}
+\end{lstlisting}
+
+\clearpage
+\begin{lstlisting}[label=lst:fer,caption=обновление феромона]
+void Colony::updatePheromone(const std::vector<std::vector<size_t>> &paths) {
+	for (size_t i = 0; i < graph.size(); ++i) {
+		for (size_t j = 0; j < graph.size(); ++j) {
+			if (i == j) {
+				continue;
+			}
+			
+			pheromoneGraph.set(i, j, pheromoneGraph.get(i, j) * (1 - params.p));
+			if (pheromoneGraph.get(i, j) <= 1e-5) {
+				pheromoneGraph.set(i, j, 0.3);
+			}
+		}
+	}
+
+	for (auto &path: paths) {
+		for (size_t i = 0; i < path.size() - 1; ++i) {
+			size_t from = path.at(i);
+			size_t to = path.at(i + 1);
+			auto delta = params.q / graph.get(from, to);
+			auto new_val = pheromoneGraph.get(from, to) + delta;
+			pheromoneGraph.set(from, to, new_val);
+			pheromoneGraph.set(to, from, new_val);
+		}
+	}
+}
+\end{lstlisting}
+\clearpage
+
+
+\section{Функциональное тестирование}
+В таблице~\ref{tabular:test_rec} приведены тесты для функций, реализующих алгоритм полного перебора и муравьиный алгоритм.
+Все тесты пройдены успешно.
+
+\begin{table}[h!]
+	\begin{center}
+		
+		\caption{\label{tabular:test_rec} Тестирование функций}
+		\begin{tabular}{c@{\hspace{5mm}}c@{\hspace{5mm}}c@{\hspace{5mm}}c@{\hspace{7mm}}c@{\hspace{7mm}}c@{\hspace{7mm}}}
+			\hline
+			Матрица смежности & Ожидаемый рез. & Действительный рез. \\ \hline
+			\vspace{4mm}
+			$\begin{pmatrix}
+				0 &  1 &  10 &  7\\
+				1 &  0 &  1 &  2\\
+				10 &  1 &  0 &  1\\
+				7 &  2 &  1 &  0
+			\end{pmatrix}$ &
+			10, [0, 1, 2, 3, 0]&
+			10, [0, 1, 2, 3, 0]\\
+			\vspace{2mm}
+			\vspace{2mm}
+			$\begin{pmatrix}
+				0 &  3 &  5 &  7\\
+				7 &  0 &  1 &  2\\
+				5 &  1 &  0 &  1\\
+				7 &  2 &  1 &  0
+			\end{pmatrix}$ &
+			11, [2, 3, 1, 0, 2]&
+			11, [2, 3, 1, 0, 2]\\
+			\vspace{2mm}
+			\vspace{2mm}
+			$\begin{pmatrix}
+				0 &  3 &  5\\
+				3 &  0 &  1\\
+				5 &  1 &  0
+			\end{pmatrix}$ &
+			9, [0, 1, 2, 0]&
+			9, [0, 1, 2, 0]\\
+		\end{tabular}
+	\end{center}
+\end{table}

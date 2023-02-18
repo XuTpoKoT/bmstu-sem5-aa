@@ -1,0 +1,184 @@
+\chapter{Исследовательская часть}
+
+\section{Параметризация метода}
+В муравьином алгоритме вычисления производятся на основе настраиваемых параметров.
+Рассмотрим два класса данных и подберем к ним параметры, при которых метод даст точный результат при минимальном количестве итераций (итерациями считаются кол-во дней).
+Будем рассматривать матрицы размерности $10\times10$ и проводить 10 запусков для каждого набора параметров.
+
+В качестве первого класса данных рассмотрим графы, матрицы смежности которых содержат значения в диапазоне $[1, 5]$.
+
+В качестве второго класса данных рассмотрим графы, матрицы смежности которых содержат значения в диапазоне $[1, 1000]$.
+
+Результат параметризации представлен в таблицах \ref{tbl:1}--\ref{tbl:6} со значениями $a$, $p$, $tmax$, $delta$, где
+\begin{itemize}
+	\item $a$, $p$ --- настраиваемые параметры;
+	\item $tmax$ --- число дней симуляции;
+	\item $delta$ --- разность эталонного решения задачи и решения муравьиного алгоритма с данными параметрами на первом классе данных.
+\end{itemize}
+
+Наилучшие параметры для класса данных 1: $a = 0.9, p = 0.8, tmax = 200.$
+
+Наилучшие параметры для класса данных 2: $a = 0.1, p = 0.2, tmax = 50.$
+
+\begin{table}[h!]
+	\caption{Результат параметризации для класса данных 1 (ч. 1)}
+	\label{tbl:1}
+	\begin{center}
+		\csvautotabular{graph1_1.csv}
+	\end{center}
+\end{table}
+\newpage 
+
+\begin{table}[h!]
+	\caption{Результат параметризации для класса данных 1 (ч. 2)}
+	\label{tbl:2}
+	\begin{center}
+		\csvautotabular{graph1_2.csv}
+	\end{center}
+\end{table}
+\newpage 
+
+\begin{table}[h!]
+	\caption{Результат параметризации для класса данных 1 (ч. 3)}
+	\label{tbl:3}
+	\begin{center}
+		\csvautotabular{graph1_3.csv}
+	\end{center}
+\end{table}
+\newpage 
+
+\begin{table}[h!]
+	\caption{Результат параметризации для класса данных 2 (ч. 1)}
+	\label{tbl:4}
+	\begin{center}
+		\csvautotabular{graph2_1.csv}
+	\end{center}
+\end{table}
+\newpage 
+
+\begin{table}[h!]
+	\caption{Результат параметризации для класса данных 2 (ч. 2)}
+	\label{tbl:5}
+	\begin{center}
+		\csvautotabular{graph2_2.csv}
+	\end{center}
+\end{table}
+\newpage 
+
+\begin{table}[h!]
+	\caption{Результат параметризации для класса данных 2 (ч. 3)}
+	\label{tbl:6}
+	\begin{center}
+		\csvautotabular{graph2_3.csv}
+	\end{center}
+\end{table}
+\clearpage 
+
+\section{Технические характеристики}
+
+Технические характеристики устройства, на котором выполнялись замеры времени:
+
+\begin{itemize}
+	\item операционная система --- Ubuntu 22.04.1 Linux x86\_64;
+	\item оперативная память --- 8 ГБ;
+	\item процессор --- AMD Ryzen 5 3550H \cite{amd}.
+\end{itemize}
+
+Замеры проводились на ноутбуке, включенном в сеть электропитания.
+Во время замеров ноутбук не был нагружен сторонними приложениями.
+
+\section{Время выполнения алгоритмов}
+
+Для проведения замеров времени, программа запускалась на различных размерах графов.
+Реализация муравьиного алгоритма работала при лучших параметриах.
+
+На рисунке \ref{img:g1} представлены результаты замеров времени выполнения реализаций алгоритмов для класса данных 1.
+
+\begin{figure}[h!]
+	\centering
+	\begin{tikzpicture}
+		\begin{axis}[	
+			height = 0.4\paperheight,
+			width = 0.65\paperwidth,
+			legend pos = north west,
+			table/col sep=comma,
+			xlabel={кол-во городов},
+			ylabel={время, нс},
+			]
+			\legend{ 
+				Полный перебор, 
+				Мур. алгоритм, 
+			};
+			\addplot [
+			solid, 
+			draw = blue,
+			mark = *, 
+			mark options = {
+				scale = 1.5, 
+				fill = blue, 
+				draw = black
+			}
+			] table [x={size}, y={time}] {t_ex1.csv};
+			\addplot [
+			dotted, 
+			draw = red,
+			mark = star, 
+			mark options = {
+				scale = 1.5, 
+				draw = red
+			}
+			] table [x={size}, y={time}] {t_ant1.csv};		
+		\end{axis}
+	\end{tikzpicture}
+	\caption{Время выполнения реализаций алгоритмов для класса данных 1}
+	\label{img:g1}
+\end{figure}
+\clearpage
+
+На рисунке \ref{img:g2} представлены результаты замеров времени выполнения реализаций алгоритмов для класса данных 2.
+
+\begin{figure}[h!]
+	\centering
+	\begin{tikzpicture}
+		\begin{axis}[	
+			height = 0.4\paperheight, 
+			width = 0.65\paperwidth,
+			legend pos = north west,
+			table/col sep=comma,
+			xlabel={кол-во городов},
+			ylabel={время, нс},
+			]
+			\legend{ 
+				Полный перебор, 
+				Мур. алгоритм, 
+			};
+			\addplot [
+			solid, 
+			draw = blue,
+			mark = *, 
+			mark options = {
+				scale = 1.5, 
+				fill = blue, 
+				draw = black
+			}
+			] table [x={size}, y={time}] {t_ex2.csv};
+			\addplot [
+			dotted, 
+			draw = red,
+			mark = star, 
+			mark options = {
+				scale = 1.5, 
+				draw = red
+			}
+			] table [x={size}, y={time}] {t_ant2.csv};
+		\end{axis}
+	\end{tikzpicture}
+	\caption{Время выполнения реализаций алгоритмов для класса данных 2}
+	\label{img:g2}
+\end{figure}
+
+\clearpage
+\section*{Вывод}
+Для обоих классов данных при кол-ве городов до 9 время работы реализации муравьиного алгоритма больше, чем при полном переборе: для 8 городов в 3 раза больше на графе первого класса данных и в 1.5 раз больше на графе второго класса.
+При большем кол-ве городов  реализация муравьиного алгоритма выигрывает по временной эффективности: в 8 раз для графа с 10 вершинами класса данных 1 и в 30 раз для графа той же размерности класса данных 2.
+

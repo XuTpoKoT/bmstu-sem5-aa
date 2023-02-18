@@ -5,10 +5,11 @@
 int main() {
     auto conveyor = make_shared<Conveyor>();
     vector<size_t> sizes{500, 1000, 2000, 4000};
-    for (auto size : sizes) {
-        conveyor->runParallel(size);
-        conveyor->runСonsistently(size);
-    }
+    // for (auto size : sizes) {
+    //     conveyor->runParallel(size);
+    //     conveyor->runСonsistently(size);
+    // }
+    conveyor->runParallel(3);
     
     return 0;
 }
