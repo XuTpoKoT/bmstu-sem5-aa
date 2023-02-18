@@ -19,6 +19,10 @@ struct Strip {
     vector<shared_ptr<Point>> points;
 };
 
+struct Cell {
+    vector<shared_ptr<Point>> points;
+};
+
 class ParallelDBScan {
 public:
     vector<shared_ptr<Point>> points;
@@ -42,8 +46,10 @@ private:
     //vector<int> sortedX;
     //vector<int> sortedY;
     vector<Strip> strips;
+    vector<Cell> cells;
 
     void makeStrips();
+    void makeCells();
     bool cmpX(int p1, int p2);
 
 

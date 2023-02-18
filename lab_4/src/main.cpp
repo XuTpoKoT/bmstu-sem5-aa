@@ -2,37 +2,19 @@
 #include <iostream>
 #include <memory>
 
+#include "SerialDBScan.h"
 #include "ParallelDBScan.h"
 
 #define MIN_POINTS_IN_CLUSTER 3
 #define EPSILON 3.5
 
-int readTestData(vector<shared_ptr<Point>> &points, vector<int> &clusterIndexes) {
-    FILE *stream = fopen("test1.txt","r");
-    if (stream == NULL) {
-        return -1;
-    }
-
-    size_t cntPoints;
-    if (fscanf(stream, "%zu\n", &cntPoints) != 1) {
-        fclose(stream);
-        return -1;
-    }
-
-    int clusterIndex;
-    for (size_t i = 0; i < cntPoints; i++) {
-        auto p = make_shared<Point>(); 
-        if (fscanf(stream, "%lf%lf%d\n", &(p->x), &(p->y), &clusterIndex) != 3) {
-            fclose(stream);
-            return -1;
+long long getThreadCpuTimeNs() {
+        struct timespec t;
+        if (clock_gettime(CLOCK_REALTIME, &t)) {
+            perror("clock_gettime");
+            return 0;
         }
-        p->clusterID = UNVISITED;
-        points.push_back(p);
-        clusterIndexes.push_back(clusterIndex);
-    }
-
-    fclose(stream);
-    return 0;
+        return t.tv_sec * 1000000000LL + t.tv_nsec;
 }
 
 void printResults(const vector<shared_ptr<Point>>& points, const vector<int> &indexes) {
@@ -90,8 +72,18 @@ int main() {
     // for (auto p : points) {
     //     p->print();
     // }
-    ParallelDBScan ds(points, MIN_POINTS_IN_CLUSTER, EPSILON, threadCnt);
-    ds.run();
+    SerialDBScan ds(points, MIN_POINTS_IN_CLUSTER, EPSILON);
+    //ParallelDBScan ds(points, MIN_POINTS_IN_CLUSTER, EPSILON, threadCnt);
+    auto t1 = getThreadCpuTimeNs();
+    ds.runP();
+    auto t2 = getThreadCpuTimeNs();
+    printf("%lld \n", (t2 - t1) / 1000);
+    // FILE *f = fopen("log.txt","w");
+    // for (size_t i = 0; i < ds.clusterIndexes.size(); i++) {
+    //     fprintf(f, "%.2lf cl %d\n", points[i]->x, ds.clusterIndexes[i]);
+
+    // }
+    // fclose(f);
 
     //printResults(ds.points, ds.clusterIndexes);
     printf("\nEeend!\n");
