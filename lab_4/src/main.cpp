@@ -2,11 +2,10 @@
 #include <iostream>
 #include <memory>
 
-#include "SerialDBScan.h"
-#include "ParallelDBScan.h"
+#include "DBScan.h"
 
 #define MIN_POINTS_IN_CLUSTER 3
-#define EPSILON 3.5
+#define EPSILON 10
 
 long long getThreadCpuTimeNs() {
         struct timespec t;
@@ -60,33 +59,24 @@ int main() {
     vector<shared_ptr<Point>> points;
     vector<int> clusterIndexes;
     int threadCnt = 2;
-    // if (readTestData(points, clusterIndexes)) {
-    //     printf("read test data failed");
-    //     return -1;
-    // }
-    //printResults(points);
-    if (readPoints("data1.txt", points)) {
+
+    if (readPoints("data2.txt", points)) {
         printf("read data failed\n");
         return -1;
     }
-    // for (auto p : points) {
-    //     p->print();
-    // }
-    SerialDBScan ds(points, MIN_POINTS_IN_CLUSTER, EPSILON);
-    //ParallelDBScan ds(points, MIN_POINTS_IN_CLUSTER, EPSILON, threadCnt);
+
+    DBScan ds(points, MIN_POINTS_IN_CLUSTER, EPSILON, threadCnt);
     auto t1 = getThreadCpuTimeNs();
-    ds.runP();
+    ds.run();
     auto t2 = getThreadCpuTimeNs();
     printf("%lld \n", (t2 - t1) / 1000);
-    // FILE *f = fopen("log.txt","w");
-    // for (size_t i = 0; i < ds.clusterIndexes.size(); i++) {
-    //     fprintf(f, "%.2lf cl %d\n", points[i]->x, ds.clusterIndexes[i]);
 
-    // }
-    // fclose(f);
+    FILE *f = fopen("clusters.txt","w");
+    for (size_t i = 0; i < ds.clusterIndexes.size(); i++) {
+        fprintf(f, "%.2lf %.2lf %d\n", points[i]->x, points[i]->y, ds.clusterIndexes[i]);
+    }
+    fclose(f);
 
-    //printResults(ds.points, ds.clusterIndexes);
     printf("\nEeend!\n");
-
     return 0;
 }
