@@ -1,0 +1,12 @@
+*.aux
+*.out
+*.bst
+*.gz
+*.log
+*.blg
+*.bbl
+*.toc
+*.drawio
+*.graphml
+
+*.idea

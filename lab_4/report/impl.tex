@@ -1,33 +1,163 @@
 \chapter{Технологическая часть}
 
-В данном разделе представлены требования к программному обеспечению, средства реализации, листинги кода и проведена оценка трудоёмкости.
-
-\section{Требования к программному \newline обеспечению}
-
-Используемое программное обеспечение должно предоставлять возможность измерения процессорного времени.
-
 \section{Средства реализации}
+Используемое программное обеспечение должно предоставлять возможность выполнения замеров времени и работы с потоками.
 
-Для реализации данной лабораторной работы был выбран язык программирования С++ \cite{c} и среда разработки CLion, которая позволяет замерять процессорное время с помощью пакета \texttt{<ctime>} \cite{ctime}.
+Для выполнения данной лабораторной работы был выбран язык программирования С++ \cite{c} и среда разработки CLion, которая позволяет замерять процессорное время с помощью пакета \texttt{<ctime>} \cite{ctime} и работать с потоками, используя класс std::thread \cite{thread}.
 
 \section{Реализация алгоритмов}
 
-В листингах \ref{lst:shakerSort}--\ref{lst:treeSort} приведены реализации алгоритмов.
+В листингах \ref{lst:DBScan}--\ref{lst:getNeighbors} приведены класс DBScan, реализация алгоритма и вспомогательных функций.
 
-\clearpage
-\begin{lstlisting}[label=lst:gnomeSort,caption=Функция гномьей сортировки]
-void gnomeSort(std::vector<int> &a) {
-	int n =  a.size();
+\begin{lstlisting}[label=lst:DBScan,caption=Классс DBScan (часть 1)]
+class DBScan {
+	public:
+	const vector<shared_ptr<Point>> points;
+	vector<int> clusterIndexes;
 	
-	for (int i = 0; i < n;) {
-		if (i == 0 || a[i-1] <= a[i]) {
-			i++;
-		} else {
-			int tmp = a[i];
-			a[i] = a[i-1];
-			a[i-1] = tmp;
-			i--;
+	DBScan(vector<shared_ptr<Point>> points, size_t minPointsInCluster, double eps, int cntThreads) :
+	points(points), minPointsInCluster(minPointsInCluster), eps(eps), threads(cntThreads) {
+		this->cntThreads = cntThreads;
+		
+		for (size_t i = 0; i < points.size(); i++) {
+			clusterIndexes.push_back(UNVISITED);
+		}
+	} 
+	
+	void runSerial();
+	void runParallel();
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:DBScan2,caption=Классс DBScan (часть 2)]
+private:
+	const size_t minPointsInCluster;
+	const double eps;
+	int cntThreads;
+	int curPointIndex;
+	int curClusterID;
+	vector<thread> threads;
+	vector<vector<int>> pointGroups;
+	map<int, vector<int>> neighbors;
+	mutex m;
+	void initNeighbors();
+	void serialCalcNeighbors();
+	void parallelCalcNeighbors();
+	void formPointGroups();	
+	int run();
+	int expandCluster();
+	vector<int> getNeighbors(const shared_ptr<Point> point);
+	void calcGroupNeighbors(int groupNumber);
+};
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:serialCalcNeighbors,caption=Функция последовательного вычисления соседей]
+	void DBScan::serialCalcNeighbors() {
+		for (int i = 0; i < points.size(); i++) {
+			neighbors[i] = getNeighbors(points[i]);
 		}
 	}
-}	
 \end{lstlisting}
+
+\begin{lstlisting}[label=lst:parallelCalcNeighbors,caption=Функция параллельного вычисления соседей: основной поток]
+	void DBScan::parallelCalcNeighbors() {
+		formPointGroups();
+		for (int i = 0; i < cntThreads; i++) {
+			this->threads[i] = thread(&DBScan::calcGroupNeighbors, this, i);
+		}
+		for (int i = 0; i < cntThreads; i++) {
+			this->threads[i].join();
+		}
+	}
+	
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:calcGroupNeighbors,caption=Функция параллельного вычисления соседей: вспомогательные потоки]
+void DBScan::calcGroupNeighbors(int groupNumber) {
+	for (size_t i = 0, n = pointGroups[groupNumber].size(); i < n; i++) {
+		vector<int> curNeighbors = getNeighbors(points[pointGroups[groupNumber][i]]);
+		m.lock();
+		neighbors[i] = move(curNeighbors);
+		m.unlock();
+	}
+}
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:run,caption=Основная функция алгоритма]
+int DBScan::run() {
+	curClusterID = 0;
+	for (size_t i = 0, n = points.size(); i < n; i++) {
+		if (clusterIndexes[i] == UNVISITED) {
+			curPointIndex = i;
+			if (expandCluster() != -1) {
+				curClusterID++;
+			}
+		}
+	}
+	
+	return 0;
+}
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:expandCluster,caption=Функция expandCluster (часть 1)]
+int DBScan::expandCluster() {
+	vector<int> seeds = getNeighbors(points.at(curPointIndex));
+	if (seeds.size() + 1 < minPointsInCluster) {
+		clusterIndexes[curPointIndex] = NOISE;
+		return -1;
+	}
+	clusterIndexes[curPointIndex] = curClusterID;
+	for (size_t i = 0, cntSeeds = seeds.size(); i < cntSeeds; ++i) {
+		clusterIndexes[seeds[i]] = curClusterID;
+	}
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:expandCluster2,caption=Функция expandCluster (часть 2)]
+	while (seeds.size() > 0) {
+		int curSeed = seeds.back();
+		seeds.pop_back();
+		vector<int> seedNeighbors = getNeighbors(points.at(curSeed));
+		
+		size_t cntNeighbors = seedNeighbors.size();
+		if (cntNeighbors + 1 >= minPointsInCluster) {
+			for (size_t i = 0; i < cntNeighbors; ++i) {
+				int curNeighbor = seedNeighbors[i];
+				if (clusterIndexes[curNeighbor] == UNVISITED || clusterIndexes[curNeighbor] == NOISE) {
+					if (clusterIndexes[curNeighbor] == NOISE) {
+						seeds.push_back(curNeighbor);
+					}
+					clusterIndexes[curNeighbor] = curClusterID;
+				}
+			}
+		}
+	}
+	
+	return 0;
+}
+\end{lstlisting}
+
+\begin{lstlisting}[label=lst:getNeighbors,caption=Функция getNeighbors]
+vector<int> DBScan::getNeighbors(const shared_ptr<Point> point) {
+	vector<int> neighborIndexes;
+	for (size_t i = 0, n = points.size(); i < n; i++) {
+		double distance = point->dist(points[i]);
+		if (distance <= eps && distance >= 1e-8) {
+			neighborIndexes.push_back(i);
+		}
+	}
+	
+	return neighborIndexes;
+}
+\end{lstlisting}
+
+\section{Пример работы программы}
+На рисунках \ref{img:0cl}--\ref{img:2cl} приведены результаты работы программы при различных значениях \emph{Eps} и \emph{MinPt}. 
+
+\imgHeight{130mm}{0cl}{Все точки являются шумом}
+
+\imgHeight{100mm}{1cl}{1 кластер}
+
+\imgHeight{100mm}{2cl}{2 кластера}
+
+
+
+

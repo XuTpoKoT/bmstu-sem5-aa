@@ -3,17 +3,18 @@
 #include <memory>
 
 #include "DBScan.h"
+#include "CSVWriter.h"
 
 #define MIN_POINTS_IN_CLUSTER 3
-#define EPSILON 10
+#define EPSILON 3.5
 
 long long getThreadCpuTimeNs() {
-        struct timespec t;
-        if (clock_gettime(CLOCK_REALTIME, &t)) {
-            perror("clock_gettime");
-            return 0;
-        }
-        return t.tv_sec * 1000000000LL + t.tv_nsec;
+    struct timespec t;
+    if (clock_gettime(CLOCK_REALTIME, &t)) {
+        perror("clock_gettime");
+        return 0;
+    }
+    return t.tv_sec * 1000000000LL + t.tv_nsec;
 }
 
 void printResults(const vector<shared_ptr<Point>>& points, const vector<int> &indexes) {
@@ -55,21 +56,48 @@ int readPoints(const char *filename, vector<shared_ptr<Point>> &points) {
     return 0;
 }
 
+void timeMes(vector<shared_ptr<Point>> points) {
+	CSVWriter w1{"../report/ts.csv"}, w2{"../report/tp.csv"};
+	w1 << "size" << "time" << endrow;
+	w2 << "size" << "time" << endrow;
+
+    vector<int> cntTreads{1, 2, 4, 8, 16};
+	for (auto i : cntTreads) {
+        DBScan ds(points, MIN_POINTS_IN_CLUSTER, EPSILON, i);
+        auto t1 = getThreadCpuTimeNs();
+        ds.runSerial();
+        auto t2 = getThreadCpuTimeNs();
+        w1 << i << (t2 - t1) / 1000 << endrow;
+
+        t1 = getThreadCpuTimeNs();
+        ds.runParallel();
+        t2 = getThreadCpuTimeNs();
+        w2 << i << (t2 - t1) / 1000 << endrow;        
+	}
+    w1.flush();
+    w2.flush();
+}
+
 int main() {
     vector<shared_ptr<Point>> points;
     vector<int> clusterIndexes;
-    int threadCnt = 2;
+    int threadCnt = 4;
 
-    if (readPoints("data2.txt", points)) {
+    if (readPoints("data0.txt", points)) {
         printf("read data failed\n");
         return -1;
     }
 
     DBScan ds(points, MIN_POINTS_IN_CLUSTER, EPSILON, threadCnt);
     auto t1 = getThreadCpuTimeNs();
-    ds.run();
+    ds.runSerial();
     auto t2 = getThreadCpuTimeNs();
     printf("%lld \n", (t2 - t1) / 1000);
+
+    // t1 = getThreadCpuTimeNs();
+    // ds.runParallel();
+    // t2 = getThreadCpuTimeNs();
+    // printf("%lld \n", (t2 - t1) / 1000);
 
     FILE *f = fopen("clusters.txt","w");
     for (size_t i = 0; i < ds.clusterIndexes.size(); i++) {

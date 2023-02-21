@@ -1,8 +1,7 @@
 \chapter{Аналитическая часть}
-В этом разделе представлено описание алгоритма.
 
 \section{Алгоритм DBSCAN}
-Алгоритм DBSCAN (Density Based Spatial Clustering of Applications with Noise), плотностный алгоритм для кластеризации пространственных данных с присутствием шума, был предложен Мартином Эстер, Гансом-Питером Кригель и коллегами в 1996 году как решение проблемы разбиения данных на кластеры произвольной формы [4].
+Алгоритм DBSCAN (Density Based Spatial Clustering of Applications with Noise), плотностный алгоритм для кластеризации пространственных данных с присутствием шума, был предложен Мартином Эстер, Гансом-Питером Кригель и коллегами в 1996 году как решение проблемы разбиения данных на кластеры произвольной формы \cite{dbscan}.
 
 Идея, положенная в основу алгоритма, заключается в том, что внутри каждого кластера наблюдается типичная плотность точек (объектов), которая заметно выше, чем плотность снаружи кластера, а также плотность в областях с шумом ниже плотности любого из кластеров. 
 Ещё точнее, что для каждой точки кластера её соседство заданного радиуса должно содержать не менее некоторого числа точек, это число точек задаётся пороговым значением.
@@ -26,3 +25,51 @@
 
 Алгоритм DBSCAN для заданных значений параметров Eps и MinPt исследует кластер следующим образом: сначала выбирает случайную точку, являющуюся ядровой, в качестве затравки, затем помещает в кластер саму затравку и все точки, плотно-достижимые из неё.
 
+\textbf{Алгоритм в общем виде.}
+
+\begin{table}[h!]
+	\begin{threeparttable}
+		\captionsetup{justification=raggedleft,singlelinecheck=off}
+		\begin{tabular}{l}
+			\hline
+			DBSCAN \\
+			\hline
+			Вход: множество точек документов \(\mathcal{D}\), \(\varepsilon\) и MinPt. \\
+			Выход: множество кластеров \(\mathcal{C} = \{C_j\}\).\\
+			Шаг 1. Установить всем элементам множества \(\mathcal{D}\) флаг «не посещён». \\
+			\quad Присвоить текущему кластеру \(\mathcal{C}_j\) нулевой номер, \(j := 0\). \\
+			\quad Множество шумовых документов Noise := \(\oslash\).\\
+			Шаг 2. Для каждого \(d_i \in \mathcal{D}\) такого, что флаг(\(d_i\)) = «не посещён», выполнить: \\
+			Шаг 3.\quad флаг(\(d_i\)) := «посещён»; \\
+			Шаг 4.\quad \(N_i := N_{\varepsilon}(d_i) = \{q \in \mathcal{D} | dist(d_i,q) \le \varepsilon\}\) \\
+			Шаг 5.\quad Если|\(N_i\)| < MinPt, то  \\
+			\quad\quad\quad\quad\quad\quad Noise := Noise + \(\{d_i\}\) \\
+			\quad\quad\quad\quad иначе \\
+			\quad\quad\quad\quad\quad\quad номер следующего кластера j := j + 1;  \\
+			\quad\quad\quad\quad\quad\quad EXPANDCLUSTER(\(d_i, N_i, \mathcal{C}, \varepsilon, MinPt\)); \\
+			\hline
+			%            \vspace{2mm}
+		\end{tabular}
+	\end{threeparttable}
+\end{table}
+
+\begin{table}[h!]
+	\begin{threeparttable}
+		\captionsetup{justification=raggedleft,singlelinecheck=off}
+		\begin{tabular}{l}
+			\hline
+			EXPANDCLUSTER \\
+			\hline
+			Вход: текущая точка \(d_i\), его \(\varepsilon\)-соседство \(N_i\), текущий кластер \(C_j\) и \(\varepsilon\), MinPt.\\
+			Выход: кластер \(C_j\)\\
+			Шаг 1. \(C_j := C_j + \{d_i\}\); \\
+			Шаг 2. Для всех документов \(d_k \in N_i\): \\
+			Шаг 3. \quad Если флаг(\(d_k\)) = «не посещён», то \\
+			Шаг 4. \quad\quad флаг(\(d_k\)) := «посещён»; \\
+			Шаг 5. \quad\quad \(N_{ik} := N_{\varepsilon}(d_k)\); \\
+			Шаг 6. \quad\quad Если \(|N_{ik}| \ge MinPt, \text{ то } N_i := N_i + N_{ik}\); \\
+			Шаг 7. \quad Если \(\nexists p: d_k \in C_p, p = \overline{1, |\mathcal{C}|}, \text{ то } C_j := C_j = \{d_k\}\); \\
+			\hline
+		\end{tabular}
+	\end{threeparttable}
+\end{table}

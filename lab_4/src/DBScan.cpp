@@ -2,27 +2,38 @@
 
 #include <algorithm>
 
-int DBScan::run() {
-    curClusterID = 0;
-    for (size_t i = 0, n = points.size(); i < n; i++) {
-        if (clusterIndexes[i] == UNVISITED) {
-            curPointIndex = i;
-            if (expandCluster() != -1) {
-                curClusterID++;
-            }
-        }
-    }
-
-    return 0;
+void DBScan::runSerial() {
+    initNeighbors();
+    serialCalcNeighbors();
+    run();
 }
 
-int DBScan::runP() {
-    curClusterID = 0;
-    for (size_t i = 0, n = points.size(); i < n; i++) {
-        if (clusterIndexes[i] == UNVISITED) {
-            curPointIndex = i;
-            if (expandClusterP() != -1) {
-                curClusterID++;
+void DBScan::runParallel() {
+    initNeighbors();
+    parallelCalcNeighbors();
+    run();
+}
+
+
+void DBScan::initNeighbors() {
+    for (int i = 0; i < points.size(); i++) {
+        neighbors[i] = vector<int>();
+    }
+}
+
+void DBScan::serialCalcNeighbors() {
+    for (int i = 0; i < points.size(); i++) { // 0
+        neighbors[i] = getNeighbors(points[i]); // 1
+    }
+}
+
+int DBScan::run() {
+    curClusterID = 0; // 2
+    for (size_t i = 0, n = points.size(); i < n; i++) { // 3
+        if (clusterIndexes[i] == UNVISITED) { // 4
+            curPointIndex = i; // 5
+            if (expandCluster() != -1) {
+                curClusterID++; // 6
             }
         }
     }
@@ -31,31 +42,31 @@ int DBScan::runP() {
 }
 
 int DBScan::expandCluster() {
-    vector<int> seeds = getNeighbors(points.at(curPointIndex));
+    vector<int> seeds = neighbors[curPointIndex]; // 7
 
-    if (seeds.size() + 1 < minPointsInCluster) {
-        clusterIndexes[curPointIndex] = NOISE;
+    if (seeds.size() + 1 < minPointsInCluster) { // 8
+        clusterIndexes[curPointIndex] = NOISE; // 9
         return -1;
     }
-    clusterIndexes[curPointIndex] = curClusterID;
-    for (size_t i = 0, cntSeeds = seeds.size(); i < cntSeeds; ++i) {
-        clusterIndexes[seeds[i]] = curClusterID;
+    clusterIndexes[curPointIndex] = curClusterID; // 10
+    for (size_t i = 0, cntSeeds = seeds.size(); i < cntSeeds; ++i) { // 11
+        clusterIndexes[seeds[i]] = curClusterID; // 12
     }
 
-    while (seeds.size() > 0) {
-        int curSeed = seeds.back();
-        seeds.pop_back();
-        vector<int> seedNeighbors = getNeighbors(points.at(curSeed));
+    while (seeds.size() > 0) { // 13
+        int curSeed = seeds.back(); // 14
+        seeds.pop_back(); // 15
+        vector<int> seedNeighbors = neighbors[curSeed]; // 16
 
-        size_t cntNeighbors = seedNeighbors.size();
-        if (cntNeighbors + 1 >= minPointsInCluster) {
-            for (size_t i = 0; i < cntNeighbors; ++i) {
-                int curNeighbor = seedNeighbors[i];
-                if (clusterIndexes[curNeighbor] == UNVISITED || clusterIndexes[curNeighbor] == NOISE) {
-                    if (clusterIndexes[curNeighbor] == NOISE) {
-                        seeds.push_back(curNeighbor);
+        size_t cntNeighbors = seedNeighbors.size(); // 17
+        if (cntNeighbors + 1 >= minPointsInCluster) { // 18
+            for (size_t i = 0; i < cntNeighbors; ++i) { // 19
+                int curNeighbor = seedNeighbors[i]; // 20
+                if (clusterIndexes[curNeighbor] == UNVISITED || clusterIndexes[curNeighbor] == NOISE) { // 21
+                    if (clusterIndexes[curNeighbor] == NOISE) { // 22
+                        seeds.push_back(curNeighbor); // 23
                     }
-                    clusterIndexes[curNeighbor] = curClusterID;
+                    clusterIndexes[curNeighbor] = curClusterID; // 24
                 }
             }
         }
@@ -64,51 +75,31 @@ int DBScan::expandCluster() {
     return 0;
 }
 
-int DBScan::expandClusterP() {
-    // printf("ExpandCL\n");
-    vector<int> seeds = getNeighborsP(points.at(curPointIndex));
-
-    // printf("ID = %d; neighbors: ", curClusterID);
-    // for (size_t i = 0; i < seeds.size(); i++) {
-    //     printf("%d ", seeds[i]);
-    // }
-    // printf("\n");
-
-    if (seeds.size() + 1 < minPointsInCluster) {
-        clusterIndexes[curPointIndex] = NOISE;
-        return -1;
+void DBScan::parallelCalcNeighbors() {
+    formPointGroups();
+    for (int i = 0; i < cntThreads; i++) {
+        this->threads[i] = thread(&DBScan::calcGroupNeighbors, this, i);
     }
-    clusterIndexes[curPointIndex] = curClusterID;
-    for (size_t i = 0, cntSeeds = seeds.size(); i < cntSeeds; ++i) {
-        clusterIndexes[seeds[i]] = curClusterID;
+    for (int i = 0; i < cntThreads; i++) {
+        this->threads[i].join();
     }
+}
 
-    while (seeds.size() > 0) {
-        int curSeed = seeds.back();
-        seeds.pop_back();
-        vector<int> seedNeighbors = getNeighborsP(points.at(curSeed));
-
-        // printf("    Inner neighbors: ");
-        // for (size_t i = 0; i < seedNeighbors.size(); i++) {
-        //     printf("%d ", seedNeighbors[i]);
-        // }
-        // printf("\n");
-
-        size_t cntNeighbors = seedNeighbors.size();
-        if (cntNeighbors + 1 >= minPointsInCluster) {
-            for (size_t i = 0; i < cntNeighbors; ++i) {
-                int curNeighbor = seedNeighbors[i];
-                if (clusterIndexes[curNeighbor] == UNVISITED || clusterIndexes[curNeighbor] == NOISE) {
-                    if (clusterIndexes[curNeighbor] == NOISE) {
-                        seeds.push_back(curNeighbor);    
-                    }
-                    clusterIndexes[curNeighbor] = curClusterID;
-                }
-            }
+void DBScan::formPointGroups() {
+    int pointsInGroup = points.size() / cntThreads;
+    for (size_t i = 0; i < cntThreads - 1; i++) {
+        vector<int> pointGroup;
+        for (size_t j = i * pointsInGroup; j < pointsInGroup * (i+1); j++) {
+            pointGroup.push_back(j);
         }
+        pointGroups.push_back(pointGroup);
     }
 
-    return 0;
+    vector<int> pointGroup;
+    for (size_t j = (cntThreads - 1) * pointsInGroup; j < points.size(); j++) {
+        pointGroup.push_back(j);
+    }
+    pointGroups.push_back(pointGroup);
 }
 
 vector<int> DBScan::getNeighbors(const shared_ptr<Point> point) {
@@ -123,55 +114,12 @@ vector<int> DBScan::getNeighbors(const shared_ptr<Point> point) {
     return neighborIndexes;
 }
 
-void DBScan::formThreadGroups() {
-    for (size_t i = 0; i < cntThreads - 1; i++) {
-        vector<int> threadGroup;
-        for (size_t j = i * pointsInThreadGroup; j < pointsInThreadGroup * (i+1); j++) {
-            threadGroup.push_back(j);
-        }
-        threadGroups.push_back(threadGroup);
-    }
-
-    vector<int> threadGroup;
-    for (size_t j = (cntThreads - 1) * pointsInThreadGroup; j < points.size(); j++) {
-        threadGroup.push_back(j);
-    }
-    threadGroups.push_back(threadGroup);
-}
-
-void DBScan::formNeighborGroups() {
-    for (int i = 0; i < cntThreads; i++) {
-        neighborGroups.push_back(vector<int>());
+void DBScan::calcGroupNeighbors(int groupNumber) {
+    for (size_t i = 0, n = pointGroups[groupNumber].size(); i < n; i++) {
+        vector<int> curNeighbors = getNeighbors(points[pointGroups[groupNumber][i]]);
+        m.lock();
+        neighbors[i] = move(curNeighbors);
+        m.unlock();
     }
 }
 
-void DBScan::getSomeNeighbors(const shared_ptr<Point> point, int threadNumber) {
-    neighborGroups[threadNumber].clear();
-    for (size_t i = 0, n = threadGroups[threadNumber].size(); i < n; i++) {
-        double distance = point->dist(points[threadGroups[threadNumber][i]]);
-        //printf("%lf\n", distance);
-        if (distance <= eps && distance >= 1e-8) {
-            neighborGroups[threadNumber].push_back(i);
-        }
-    }
-}
-
-// void DBScan::runThread() {
-//     while(!)
-// }
-
-vector<int> DBScan::getNeighborsP(const shared_ptr<Point> point) {
-    for (int i = 0; i < cntThreads; i++) {
-        this->threads[i] = thread(&DBScan::getSomeNeighbors, this, point, i);
-    }
-    //printf()
-    for (int i = 0; i < cntThreads; i++) {
-        this->threads[i].join();
-    }
-    vector<int> neighborIndexes;
-    for (int i = 0; i < cntThreads; i++) {
-        neighborIndexes.insert(neighborIndexes.end(), neighborGroups[i].begin(), neighborGroups[i].end());
-    }
-
-    return neighborIndexes;
-}
