@@ -45,6 +45,8 @@
 \def\@biblabel#1{#1. } % Изменение нумерации списка использованных источников
 \makeatother
 
+
+%=========Опционально==========
 \usepackage{listings}
 \usepackage{xcolor}
 \lstset{ %
@@ -78,7 +80,7 @@
 
 \newcommand{\imgScale}[3] {
 	\begin{figure}[h!]
-		\center{\includegraphics[scale=#1]{img/#2}}
+		\center{\includegraphics[scale=#1]{inc/img/#2}}
 		\caption{#3}
 		\label{img:#2}
 	\end{figure}
@@ -95,3 +97,7 @@
 
 \usepackage{csvsimple} % генерим таблички из csv
 \usepackage{booktabs}
+
+%\usepackage[para,online,flushleft]{threeparttable}
+%\usepackage{textcomp} 
+%\usepackage{amssymb}
